@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite App</title>
+  </head>
+  <link rel="stylesheet" href="style.css" />
+  <body>
+    <div class="mx-auto w-full px-8 md:px-0 max-w-96">
+      <canvas id="myChart"></canvas>
+      <div class="flex justify-center flex-col">
+        <button id="spin-btn" class="btn-grad">Gira</button>
+        <div id="final-value" class="text-black text-center">
+          <p>Empieza el juego</p>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-gradient"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script>
+      const canvas = document.getElementById("myChart");
+      const spinBtn = document.getElementById("spin-btn");
+      const finalValue = document.getElementById("final-value");
+      const ctx = canvas.getContext("2d");
+
+      const images = [
+        "https://via.placeholder.com/50/FF6384", // Red image
+        "https://via.placeholder.com/50/36A2EB", // Blue image
+        "https://via.placeholder.com/50/FFCE56", // Yellow image
+        "https://via.placeholder.com/50/BA68C8", // Purple image
+        "https://via.placeholder.com/50/CCCCCC", // Other image
+      ];
+
+      const getImage = () => {
+        const img = new Image();
+        img.src = "./shape.png"; // Replace with your image URL
+        img.width = 100;
+        img.height = 100;
+        return img;
+      };
+
+      //Object that stores values of minimum and maximum angle for a value
+      const rotationValues = [
+        { minDegree: 0, maxDegree: 30, value: 7 },
+        { minDegree: 31, maxDegree: 90, value: 1 },
+        { minDegree: 91, maxDegree: 150, value: 6 },
+        { minDegree: 151, maxDegree: 210, value: 5 },
+        { minDegree: 211, maxDegree: 270, value: 4 },
+        { minDegree: 271, maxDegree: 330, value: 3 },
+        { minDegree: 331, maxDegree: 360, value: 2 },
+      ];
+
+      const annotation1 = {
+        type: "label",
+        drawTime: "afterDraw",
+        content: getImage(),
+        width: 100,
+        height: 100,
+        xValue: 4,
+        yValue: 30,
+        xAdjust: 90,
+        yAdjust: -110,
+        borderWidth: 0,
+        borderDash: [6, 6],
+        callout: {
+          display: false,
+          position: "left",
+        },
+      };
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, "rgba(255, 99, 132, 0.5)");
+      gradient.addColorStop(1, "rgba(54, 162, 235, 0.1)");
+
+      let myChart = new Chart(ctx, {
+        type: "pie",
+        plugins: [
+          ChartDataLabels,
+          gradient,
+          {
+            afterDraw: (chart) => {
+              const ctx = chart.ctx;
+              const { width, height } = chart;
+              const xCenter = width / 2;
+              const yCenter = height / 2;
+              const imageSize = 50; // Adjust the size of the image
+
+              ctx.drawImage(
+                getImage(),
+                xCenter - imageSize / 2,
+                yCenter - imageSize / 2,
+                imageSize,
+                imageSize
+              );
+            },
+          },
+        ],
+        data: {
+          labels: [
+            "4x 1 en \ntal promocion",
+            "Blue",
+            "Yellow",
+            "Purple",
+            "Other",
+            "Test",
+            "7",
+          ],
+          datasets: [
+            {
+              label: "My First Dataset",
+              data: [1, 1, 1, 1, 1, 1, 1],
+              backgroundColor: [
+                gradient,
+                "rgb(54, 162, 235)",
+                "rgb(255, 205, 86)",
+                "purple",
+                "tomato",
+                "pink",
+                "gray",
+              ],
+              hoverOffset: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          animation: { duration: 0 },
+          plugins: {
+            // annotation: {
+            //   annotations: {
+            //     annotation1,
+            //   },
+            // },
+            datalabels: {
+              color: "#000",
+              // anchor: "end",
+              // align: "top",
+              formatter: (value, context) => {
+                // Display the label for each bar instead of its value
+                return (
+                  context.chart.data.labels[context.dataIndex] +
+                  " " +
+                  context.dataIndex
+                );
+              },
+            },
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              enabled: false,
+            },
+          },
+          hover: {
+            mode: null, // Disable hover mode
+          },
+        },
+      });
+
+      const valueGenerator = (angleValue) => {
+        for (let i of rotationValues) {
+          //if the angleValue is between min and max then display it
+          if (angleValue >= i.minDegree && angleValue <= i.maxDegree) {
+            finalValue.innerHTML = `<p>Value: ${i.value}</p>`;
+            spinBtn.disabled = false;
+            break;
+          }
+        }
+      };
+
+      //Spinner count
+      let count = 0;
+      //100 rotations for animation and last rotation for result
+      let resultValue = 101;
+      //Start spinning
+      spinBtn.addEventListener("click", () => {
+        spinBtn.disabled = true;
+        //Empty final value
+        finalValue.innerHTML = `<p>Buena suerte!</p>`;
+        //Generate random degrees to stop at
+        let randomDegree = Math.floor(Math.random() * (355 - 0 + 1) + 0);
+        //Interval for rotation animation
+        let rotationInterval = window.setInterval(() => {
+          //Set rotation for piechart
+          /*
+    Initially to make the piechart rotate faster we set resultValue to 101 so it rotates 101 degrees at a time and this reduces by 1 with every count. Eventually on last rotation we rotate by 1 degree at a time.
+    */
+          myChart.options.rotation = myChart.options.rotation + resultValue;
+          //Update chart with new value;
+          myChart.update();
+          //If rotation>360 reset it back to 0
+          if (myChart.options.rotation >= 360) {
+            count += 1;
+            resultValue -= 5;
+            myChart.options.rotation = 0;
+          } else if (count > 15 && myChart.options.rotation == randomDegree) {
+            valueGenerator(randomDegree);
+            console.log("randomDegree  -----------------  ", randomDegree);
+            clearInterval(rotationInterval);
+            count = 0;
+            resultValue = 101;
+          }
+        }, 10);
+      });
+    </script>
+  </body>
+</html>
